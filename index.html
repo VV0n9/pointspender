@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>팝송 월드컵</title>
+    <title>팝송 월드컵 - Point Spender</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     <style>
@@ -19,15 +19,31 @@
         .submit-btn { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--success); color: white; font-weight: bold; margin-top: 15px; font-size: 1.1em; }
         #lyrics-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 9999; }
         #lyrics-modal { background: white; width: 85%; padding: 25px; border-radius: 20px; max-height: 80vh; overflow-y: auto; text-align: left; }
+        
+        /* 반 선택 버튼 스타일 추가 */
+        .hub-btn { width: 100%; padding: 20px; margin-bottom: 10px; border-radius: 12px; border: 2px solid var(--primary); background: white; color: var(--primary); font-weight: bold; font-size: 1.1em; cursor: pointer; }
+        .hub-btn:hover { background: #e8f0fe; }
+        .back-link { display: block; margin-top: 15px; color: #888; text-decoration: underline; font-size: 0.9em; cursor: pointer; border: none; background: none; width: 100%; }
     </style>
 </head>
 <body>
 <div class="card">
-    <h2 id="vote-topic" style="margin-bottom:20px; color:#333;">접속 중...</h2>
+    <h2 id="vote-topic" style="margin-bottom:20px; color:#333;">반을 선택하세요</h2>
+
+    <div id="step-hub">
+        <button class="hub-btn" onclick="initClass(1)">6학년 8반</button>
+        <button class="hub-btn" onclick="initClass(2)">6학년 9반</button>
+        <button class="hub-btn" onclick="initClass(3)">6학년 10반</button>
+	<button class="hub-btn" onclick="initClass(3)">6학년 11반</button>
+	<button class="hub-btn" onclick="initClass(3)">6학년 12반</button>
+	<button class="hub-btn" onclick="initClass(3)">6학년 13반</button>
+	<button class="hub-btn" onclick="initClass(3)">6학년 14반</button>
+    </div>
     
-    <div id="step-login">
+    <div id="step-login" class="hidden">
         <input type="text" id="input-name" placeholder="이름을 입력하세요" style="width:100%; padding:15px; margin-bottom:10px; border-radius:10px; border:1px solid #ddd; font-size:16px;">
         <button onclick="login()" style="width:100%; padding:15px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px;">시작하기</button>
+        <button class="back-link" onclick="resetHub()">다른 반 선택하기</button>
     </div>
 
     <div id="step-vote" class="hidden">
@@ -35,18 +51,21 @@
         <div id="option-container"></div>
         <input type="number" id="vote-amount" placeholder="투자할 포인트 입력" style="width:100%; padding:15px; margin-top:10px; border-radius:10px; border:1px solid #ddd; font-size:16px;">
         <button id="btn-submit" class="submit-btn" onclick="castVote()" disabled>투표 완료</button>
+        <button class="back-link" onclick="resetHub()">처음으로</button>
     </div>
 
     <div id="step-waiting" class="hidden">
         <div style="padding: 40px 0;">
             <div style="font-size: 4em;">⌛</div>
             <h3 style="margin-top:20px;">투표 완료! 결과 대기 중...</h3>
+            <button class="back-link" onclick="resetHub()">처음으로</button>
         </div>
     </div>
 
     <div id="step-result" class="hidden">
         <h3 style="color: var(--primary); margin-bottom:15px;">📊 경기 집계 결과</h3>
         <div id="result-list" style="background:#f8f9fa; border-radius:15px; padding:10px;"></div>
+        <button class="back-link" onclick="resetHub()">처음으로</button>
     </div>
 </div>
 
@@ -63,22 +82,41 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const params = new URLSearchParams(window.location.search);
-    const myClass = "class" + (params.get('class') || "1");
+    
+    let myClass = null; // 선택한 반 저장용
     let currentUser = null, selectedSong = null, globalLyrics = {};
+    let classUnsubscribe = null; // 실시간 감시 해제용
 
-    // 1. 경기 정보 및 상태 실시간 감시
-    db.collection("classes").doc(myClass).onSnapshot(doc => {
-        if (!doc.exists) return;
-        const data = doc.data();
-        document.getElementById('vote-topic').innerText = data.topic || "팝송 월드컵";
-        if (data.options) renderOptions(data.options);
-        
-        if (data.isRevealed) {
-            showResults();
-        } else {
-            document.getElementById('step-result').classList.add('hidden');
-            if (currentUser) {
+    // [추가] 반 선택 시 실행되는 함수
+    function initClass(num) {
+        myClass = "class" + num;
+        document.getElementById('step-hub').classList.add('hidden');
+        document.getElementById('step-login').classList.remove('hidden');
+        startClassWatch(); // 해당 반 데이터 감시 시작
+    }
+
+    // [추가] 처음으로 돌아가는 함수
+    function resetHub() {
+        if(classUnsubscribe) classUnsubscribe(); // 감시 중단
+        myClass = null;
+        currentUser = null;
+        document.getElementById('vote-topic').innerText = "반을 선택하세요";
+        document.querySelectorAll('.card > div').forEach(div => div.classList.add('hidden'));
+        document.getElementById('step-hub').classList.remove('hidden');
+        document.getElementById('input-name').value = "";
+    }
+
+    // 1. 경기 정보 실시간 감시 (반 선택 후 실행)
+    function startClassWatch() {
+        classUnsubscribe = db.collection("classes").doc(myClass).onSnapshot(doc => {
+            if (!doc.exists) return;
+            const data = doc.data();
+            document.getElementById('vote-topic').innerText = data.topic || "팝송 월드컵";
+            if (data.options) renderOptions(data.options);
+            
+            if (data.isRevealed) {
+                showResults();
+            } else if (currentUser) {
                 if (currentUser.hasVoted) {
                     document.getElementById('step-vote').classList.add('hidden');
                     document.getElementById('step-waiting').classList.remove('hidden');
@@ -87,10 +125,10 @@
                     document.getElementById('step-waiting').classList.add('hidden');
                 }
             }
-        }
-    });
+        });
+    }
 
-    // 2. 가사 정보 실시간 감시 (공통 라이브러리 참조)
+    // 이하 가사 정보 및 나머지 로직은 동일
     db.collection("global_library").onSnapshot(snap => {
         snap.forEach(doc => { globalLyrics[doc.id] = doc.data().lyrics; });
     });
@@ -138,7 +176,6 @@
             currentUser = { name, ...doc.data() };
             document.getElementById('user-points').innerText = currentUser.points;
             
-            // 실시간 상태 반영
             if (currentUser.hasVoted) {
                 document.getElementById('step-vote').classList.add('hidden');
                 if(!document.getElementById('step-result').classList.contains('hidden')) return;
@@ -150,35 +187,25 @@
         });
     }
 
-async function castVote() {
-    let amount = parseInt(document.getElementById('vote-amount').value);
-    // 빈칸이거나 숫자가 아니면 0포인트로 처리 (기본 1표 보장)
-    if (isNaN(amount) || amount < 0) amount = 0; 
-    
-    if (!selectedSong || amount > currentUser.points) {
-        return alert("포인트가 부족하거나 곡을 선택하지 않았습니다!");
+    async function castVote() {
+        let amount = parseInt(document.getElementById('vote-amount').value);
+        if (isNaN(amount) || amount < 0) amount = 0; 
+        if (!selectedSong || amount > currentUser.points) return alert("포인트가 부족하거나 곡을 선택하지 않았습니다!");
+
+        const batch = db.batch();
+        const totalVotes = amount + 1;
+
+        batch.update(db.collection("classes").doc(myClass).collection("students").doc(currentUser.name), { 
+            hasVoted: true, points: currentUser.points - amount, usedPoints: amount, lastChoice: selectedSong 
+        });
+
+        batch.set(db.collection("classes").doc(myClass).collection("votes").doc(selectedSong), { 
+            totalScore: firebase.firestore.FieldValue.increment(totalVotes) 
+        }, { merge: true });
+
+        await batch.commit();
+        document.getElementById('vote-amount').value = "";
     }
-
-    const batch = db.batch();
-    // 실제 반영될 표수: 투자 포인트 + 기본 1표
-    const totalVotes = amount + 1;
-
-    // 학생 정보 업데이트
-    batch.update(db.collection("classes").doc(myClass).collection("students").doc(currentUser.name), { 
-        hasVoted: true, 
-        points: currentUser.points - amount, 
-        usedPoints: amount, // 나중에 현황판 확인용
-        lastChoice: selectedSong 
-    });
-
-    // 점수 집계 (기존 점수에 totalVotes를 더함)
-    batch.set(db.collection("classes").doc(myClass).collection("votes").doc(selectedSong), { 
-        totalScore: firebase.firestore.FieldValue.increment(totalVotes) 
-    }, { merge: true });
-
-    await batch.commit();
-    document.getElementById('vote-amount').value = "";
-}
 
     async function showResults() {
         const snap = await db.collection("classes").doc(myClass).collection("votes").get();
@@ -195,5 +222,4 @@ async function castVote() {
     }
 </script>
 </body>
-
 </html>
