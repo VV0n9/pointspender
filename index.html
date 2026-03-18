@@ -15,15 +15,39 @@
         .option-item { display: flex; align-items: center; background: #fff; border: 2px solid #eee; border-radius: 12px; padding: 15px; cursor: pointer; margin-bottom: 10px; transition: 0.2s; }
         .option-item.active { border-color: var(--primary); background: #e8f0fe; }
         .song-name { flex: 1; text-align: left; font-weight: bold; }
-        .lyrics-btn { background: #f1f3f4; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 1.2em; }
-        .submit-btn { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--success); color: white; font-weight: bold; margin-top: 15px; font-size: 1.1em; }
+        .lyrics-btn { background: #f1f3f4; border: none; padding: 12px 14px; border-radius: 8px; cursor: pointer; font-size: 1.2em; min-width: 44px; min-height: 44px; }
+        .submit-btn { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--success); color: white; font-weight: bold; margin-top: 15px; font-size: 1.1em; cursor: pointer; }
+        .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
         #lyrics-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 9999; }
-        #lyrics-modal { background: white; width: 85%; padding: 25px; border-radius: 20px; max-height: 80vh; overflow-y: auto; text-align: left; }
-        
-        /* 반 선택 버튼 스타일 추가 */
+        #lyrics-modal { background: white; width: 85%; border-radius: 20px; max-height: 80vh; display: flex; flex-direction: column; text-align: left; overflow: hidden; }
+        #lyrics-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 25px 15px; border-bottom: 1px solid #eee; flex-shrink: 0; }
+        #lyrics-modal-header h3 { margin: 0; color: var(--primary); font-size: 1.05em; flex: 1; padding-right: 10px; }
+        #lyrics-close-btn { background: #f1f3f4; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 1.1em; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #555; }
+        #lyrics-close-btn:hover { background: #e2e2e2; }
+        #lyrics-modal-body { padding: 15px 25px 25px; overflow-y: auto; }
         .hub-btn { width: 100%; padding: 20px; margin-bottom: 10px; border-radius: 12px; border: 2px solid var(--primary); background: white; color: var(--primary); font-weight: bold; font-size: 1.1em; cursor: pointer; }
         .hub-btn:hover { background: #e8f0fe; }
-        .back-link { display: block; margin-top: 15px; color: #888; text-decoration: underline; font-size: 0.9em; cursor: pointer; border: none; background: none; width: 100%; }
+        .back-link { display: block; margin-top: 15px; color: #888; text-decoration: underline; font-size: 0.9em; cursor: pointer; border: none; background: none; width: 100%; padding: 12px 0; min-height: 44px; }
+        .point-control { margin-top: 10px; }
+        .point-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .point-row input[type="number"] { flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; }
+        .all-in-btn { padding: 15px 18px; border-radius: 10px; border: 2px solid var(--primary); background: white; color: var(--primary); font-weight: bold; font-size: 0.95em; cursor: pointer; white-space: nowrap; }
+        .all-in-btn:hover { background: #e8f0fe; }
+        input[type="range"] { width: 100%; accent-color: var(--primary); height: 28px; cursor: pointer; }
+        .revote-btn { width: 100%; padding: 15px; margin-top: 15px; border-radius: 12px; border: 2px solid #e74c3c; background: white; color: #e74c3c; font-weight: bold; font-size: 1em; cursor: pointer; }
+        .revote-btn:hover { background: #fdecea; }
+
+        /* 결과 카드 */
+        .result-card { background: #f8f9fa; border-radius: 15px; padding: 16px; margin-bottom: 12px; text-align: left; }
+        .result-rank { font-size: 1.4em; margin-right: 8px; }
+        .result-title-row { display: flex; align-items: center; margin-bottom: 10px; }
+        .result-song-name { font-weight: bold; font-size: 1.05em; flex: 1; }
+        .result-stats { display: flex; gap: 10px; margin-bottom: 8px; font-size: 0.85em; color: #555; }
+        .result-stat { background: white; border-radius: 8px; padding: 5px 10px; }
+        .bar-wrap { background: #e9ecef; border-radius: 6px; height: 8px; margin-bottom: 4px; overflow: hidden; }
+        .bar-pt  { height: 100%; border-radius: 6px; background: var(--primary); transition: width 0.8s ease; }
+        .bar-cnt { height: 100%; border-radius: 6px; background: var(--success); transition: width 0.8s ease; }
+        .bar-label { font-size: 0.75em; color: #888; margin-bottom: 6px; }
     </style>
 </head>
 <body>
@@ -34,12 +58,12 @@
         <button class="hub-btn" onclick="initClass(1)">6학년 8반</button>
         <button class="hub-btn" onclick="initClass(2)">6학년 9반</button>
         <button class="hub-btn" onclick="initClass(3)">6학년 10반</button>
-	<button class="hub-btn" onclick="initClass(4)">6학년 11반</button>
-	<button class="hub-btn" onclick="initClass(5)">6학년 12반</button>
-	<button class="hub-btn" onclick="initClass(6)">6학년 13반</button>
-	<button class="hub-btn" onclick="initClass(7)">6학년 14반</button>
+        <button class="hub-btn" onclick="initClass(4)">6학년 11반</button>
+        <button class="hub-btn" onclick="initClass(5)">6학년 12반</button>
+        <button class="hub-btn" onclick="initClass(6)">6학년 13반</button>
+        <button class="hub-btn" onclick="initClass(7)">6학년 14반</button>
     </div>
-    
+
     <div id="step-login" class="hidden">
         <input type="text" id="input-name" placeholder="이름을 입력하세요" style="width:100%; padding:15px; margin-bottom:10px; border-radius:10px; border:1px solid #ddd; font-size:16px;">
         <button onclick="login()" style="width:100%; padding:15px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px;">시작하기</button>
@@ -47,9 +71,17 @@
     </div>
 
     <div id="step-vote" class="hidden">
-        <div style="background:#f8f9fa; padding:10px; border-radius:10px; margin-bottom:15px; font-size:0.9em;">👤 <span id="user-display"></span> | 💰 <span id="user-points">0</span>pt</div>
+        <div style="background:#f8f9fa; padding:10px; border-radius:10px; margin-bottom:15px; font-size:0.9em;">
+            👤 <span id="user-display"></span> | 💰 <span id="user-points">0</span>pt
+        </div>
         <div id="option-container"></div>
-        <input type="number" id="vote-amount" placeholder="투자할 포인트 입력" style="width:100%; padding:15px; margin-top:10px; border-radius:10px; border:1px solid #ddd; font-size:16px;">
+        <div class="point-control">
+            <div class="point-row">
+                <input type="number" id="vote-amount" placeholder="투자할 포인트 입력" min="0" inputmode="numeric" pattern="[0-9]*" oninput="syncSlider()">
+                <button class="all-in-btn" onclick="allIn()">전부 투자</button>
+            </div>
+            <input type="range" id="vote-slider" min="0" value="0" oninput="syncInput()">
+        </div>
         <button id="btn-submit" class="submit-btn" onclick="castVote()" disabled>투표 완료</button>
         <button class="back-link" onclick="resetHub()">처음으로</button>
     </div>
@@ -58,18 +90,29 @@
         <div style="padding: 40px 0;">
             <div style="font-size: 4em;">⌛</div>
             <h3 style="margin-top:20px;">투표 완료! 결과 대기 중...</h3>
+            <button class="revote-btn" onclick="cancelVote()">🔄 다시 투표하기</button>
             <button class="back-link" onclick="resetHub()">처음으로</button>
         </div>
     </div>
 
     <div id="step-result" class="hidden">
         <h3 style="color: var(--primary); margin-bottom:15px;">📊 경기 집계 결과</h3>
-        <div id="result-list" style="background:#f8f9fa; border-radius:15px; padding:10px;"></div>
+        <div id="result-list"></div>
         <button class="back-link" onclick="resetHub()">처음으로</button>
     </div>
 </div>
 
-<div id="lyrics-layer"><div id="lyrics-modal"><h3 id="lyrics-title" style="color:var(--primary); margin-top:0;"></h3><div id="lyrics-body" style="white-space:pre-wrap; line-height:1.6; border-top:1px solid #eee; padding-top:15px;"></div><button onclick="closeLyrics()" style="width:100%; margin-top:20px; padding:15px; border:none; border-radius:10px; background:#5f6368; color:white; font-weight:bold;">닫기</button></div></div>
+<div id="lyrics-layer" onclick="handleLyricsLayerClick(event)">
+    <div id="lyrics-modal">
+        <div id="lyrics-modal-header">
+            <h3 id="lyrics-title"></h3>
+            <button id="lyrics-close-btn" onclick="closeLyrics()">✕</button>
+        </div>
+        <div id="lyrics-modal-body">
+            <div id="lyrics-body" style="white-space:pre-wrap; line-height:1.6;"></div>
+        </div>
+    </div>
+</div>
 
 <script>
     const firebaseConfig = {
@@ -82,72 +125,130 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    
-    let myClass = null; // 선택한 반 저장용
-    let currentUser = null, selectedSong = null, globalLyrics = {};
-    let classUnsubscribe = null; // 실시간 감시 해제용
 
-    // [추가] 반 선택 시 실행되는 함수
+    let myClass        = null;
+    let currentUser    = null;
+    let selectedSong   = null;
+    let globalLyrics   = {};
+    let currentOptions = [];
+    let classUnsubscribe = null;
+    let userUnsubscribe  = null;
+    let isResultShown    = false;
+    let isVoting         = false;
+    let isRevealed       = false;   // classWatch와 updateScreen이 공유
+
+    // ────────────────────────────────────────
+    // 화면 전환 통합 (classWatch, watchUser 양쪽에서 호출)
+    // ────────────────────────────────────────
+    function updateScreen() {
+        if (!currentUser) return;
+
+        if (isRevealed) {
+            if (!isResultShown) {
+                isResultShown = true;
+                showResults();
+            }
+            return;
+        }
+
+        // isRevealed가 false로 바뀌면 결과 화면 초기화
+        isResultShown = false;
+        document.getElementById('result-list').innerHTML = "";
+        document.getElementById('step-result').classList.add('hidden');
+
+        if (currentUser.hasVoted) {
+            document.getElementById('step-vote').classList.add('hidden');
+            document.getElementById('step-waiting').classList.remove('hidden');
+        } else {
+            document.getElementById('step-waiting').classList.add('hidden');
+            document.getElementById('step-vote').classList.remove('hidden');
+        }
+    }
+
+    // ────────────────────────────────────────
+    // 반 선택
+    // ────────────────────────────────────────
     function initClass(num) {
         myClass = "class" + num;
         document.getElementById('step-hub').classList.add('hidden');
         document.getElementById('step-login').classList.remove('hidden');
-        startClassWatch(); // 해당 반 데이터 감시 시작
+        startClassWatch();
     }
 
-    // [추가] 처음으로 돌아가는 함수
     function resetHub() {
-        if(classUnsubscribe) classUnsubscribe(); // 감시 중단
-        myClass = null;
-        currentUser = null;
+        if (classUnsubscribe) { classUnsubscribe(); classUnsubscribe = null; }
+        if (userUnsubscribe)  { userUnsubscribe();  userUnsubscribe  = null; }
+        myClass = null; currentUser = null; selectedSong = null;
+        currentOptions = []; isResultShown = false; isVoting = false; isRevealed = false;
         document.getElementById('vote-topic').innerText = "반을 선택하세요";
         document.querySelectorAll('.card > div').forEach(div => div.classList.add('hidden'));
         document.getElementById('step-hub').classList.remove('hidden');
         document.getElementById('input-name').value = "";
+        const loginBtn = document.querySelector('#step-login button');
+        loginBtn.disabled = false;
+        loginBtn.innerText = "시작하기";
+        document.getElementById('vote-amount').value = "";
+        document.getElementById('vote-slider').value = 0;
+        document.getElementById('btn-submit').disabled = true;
+        document.getElementById('btn-submit').innerText = "투표 완료";
     }
 
-    // 1. 경기 정보 실시간 감시 (반 선택 후 실행)
+    // ────────────────────────────────────────
+    // 경기 정보 감시 (데이터 업데이트만 담당)
+    // ────────────────────────────────────────
     function startClassWatch() {
         classUnsubscribe = db.collection("classes").doc(myClass).onSnapshot(doc => {
             if (!doc.exists) return;
             const data = doc.data();
             document.getElementById('vote-topic').innerText = data.topic || "팝송 월드컵";
-            if (data.options) renderOptions(data.options);
-            
-            if (data.isRevealed) {
-                showResults();
-            } else if (currentUser) {
-                if (currentUser.hasVoted) {
-                    document.getElementById('step-vote').classList.add('hidden');
-                    document.getElementById('step-waiting').classList.remove('hidden');
-                } else {
-                    document.getElementById('step-vote').classList.remove('hidden');
-                    document.getElementById('step-waiting').classList.add('hidden');
-                }
+
+            if (data.options) {
+                currentOptions = data.options;
+                renderOptions(currentOptions);
             }
+
+            isRevealed = !!data.isRevealed;
+            updateScreen();
         });
     }
 
-    // 이하 가사 정보 및 나머지 로직은 동일
+    // 가사 라이브러리 감시
     db.collection("global_library").onSnapshot(snap => {
         snap.forEach(doc => { globalLyrics[doc.id] = doc.data().lyrics; });
     });
 
+    // ────────────────────────────────────────
+    // 옵션 렌더링
+    // ────────────────────────────────────────
     function renderOptions(options) {
         const container = document.getElementById('option-container');
         container.innerHTML = "";
         options.forEach(opt => {
             const div = document.createElement('div');
             div.className = 'option-item' + (selectedSong === opt ? ' active' : '');
-            div.innerHTML = `<div class="song-name" onclick="selectSong('${opt}')">${opt}</div>
-                             <button class="lyrics-btn" onclick="openLyrics('${opt}')">📖</button>`;
+            // div 전체에 클릭 이벤트 부착 (텍스트 영역 밖 클릭도 처리)
+            div.onclick = (e) => {
+                if (!e.target.classList.contains('lyrics-btn')) selectSong(opt);
+            };
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'song-name';
+            nameDiv.innerText = opt;
+            const lyricsBtn = document.createElement('button');
+            lyricsBtn.className = 'lyrics-btn';
+            lyricsBtn.innerText = '📖';
+            lyricsBtn.onclick = (e) => { e.stopPropagation(); openLyrics(opt); };
+            div.appendChild(nameDiv);
+            div.appendChild(lyricsBtn);
             container.appendChild(div);
         });
     }
 
     function selectSong(name) {
         selectedSong = name;
-        renderOptions(Array.from(document.querySelectorAll('.song-name')).map(el => el.innerText));
+        // DOM 재생성 없이 active 클래스만 교체 → 이벤트 소실 방지
+        document.querySelectorAll('.option-item').forEach(el => {
+            el.classList.toggle('active', el.querySelector('.song-name').innerText === name);
+        });
         document.getElementById('btn-submit').disabled = false;
     }
 
@@ -156,66 +257,214 @@
         document.getElementById('lyrics-body').innerText = globalLyrics[name] || "등록된 가사가 없습니다.";
         document.getElementById('lyrics-layer').style.display = 'flex';
     }
-
     function closeLyrics() { document.getElementById('lyrics-layer').style.display = 'none'; }
+    function handleLyricsLayerClick(e) { if (e.target === document.getElementById('lyrics-layer')) closeLyrics(); }
 
+    // ────────────────────────────────────────
+    // 로그인
+    // ────────────────────────────────────────
     async function login() {
         const name = document.getElementById('input-name').value.trim();
-        if(!name) return;
-        const doc = await db.collection("classes").doc(myClass).collection("students").doc(name).get();
-        if (doc.exists) {
-            document.getElementById('step-login').classList.add('hidden');
-            document.getElementById('user-display').innerText = name;
-            watchUser(name);
-        } else alert("명단에 이름이 없습니다.");
+        if (!name) return;
+        const loginBtn = document.querySelector('#step-login button');
+        loginBtn.disabled = true;
+        loginBtn.innerText = "확인 중...";
+        try {
+            const doc = await db.collection("classes").doc(myClass).collection("students").doc(name).get();
+            if (doc.exists) {
+                document.getElementById('step-login').classList.add('hidden');
+                document.getElementById('user-display').innerText = name;
+                watchUser(name);
+            } else {
+                alert("명단에 이름이 없습니다.");
+                loginBtn.disabled = false;
+                loginBtn.innerText = "시작하기";
+            }
+        } catch (e) {
+            alert("오류가 발생했습니다. 다시 시도해주세요.");
+            loginBtn.disabled = false;
+            loginBtn.innerText = "시작하기";
+        }
     }
 
+    // ────────────────────────────────────────
+    // 유저 상태 감시 (데이터 업데이트만 담당)
+    // ────────────────────────────────────────
     function watchUser(name) {
-        db.collection("classes").doc(myClass).collection("students").doc(name).onSnapshot(doc => {
+        if (userUnsubscribe) { userUnsubscribe(); }
+
+        userUnsubscribe = db.collection("classes").doc(myClass).collection("students").doc(name).onSnapshot(doc => {
             if (!doc.exists) return;
             currentUser = { name, ...doc.data() };
             document.getElementById('user-points').innerText = currentUser.points;
-            
-            if (currentUser.hasVoted) {
-                document.getElementById('step-vote').classList.add('hidden');
-                if(!document.getElementById('step-result').classList.contains('hidden')) return;
-                document.getElementById('step-waiting').classList.remove('hidden');
-            } else {
-                document.getElementById('step-waiting').classList.add('hidden');
-                document.getElementById('step-vote').classList.remove('hidden');
-            }
+            document.getElementById('vote-slider').max = currentUser.points;
+            updateScreen();
         });
     }
 
+    // ────────────────────────────────────────
+    // 포인트 입력 UX
+    // ────────────────────────────────────────
+    function syncSlider() {
+        let val = parseInt(document.getElementById('vote-amount').value) || 0;
+        const max = currentUser ? currentUser.points : 0;
+        if (val > max) {
+            val = max;
+            document.getElementById('vote-amount').value = val;
+        }
+        document.getElementById('vote-slider').value = val;
+    }
+    function syncInput() {
+        document.getElementById('vote-amount').value = document.getElementById('vote-slider').value;
+    }
+    function allIn() {
+        if (!currentUser) return;
+        document.getElementById('vote-amount').value = currentUser.points;
+        document.getElementById('vote-slider').value = currentUser.points;
+    }
+
+    // ────────────────────────────────────────
+    // 투표
+    // ────────────────────────────────────────
     async function castVote() {
+        if (isVoting) return;
+
         let amount = parseInt(document.getElementById('vote-amount').value);
-        if (isNaN(amount) || amount < 0) amount = 0; 
-        if (!selectedSong || amount > currentUser.points) return alert("포인트가 부족하거나 곡을 선택하지 않았습니다!");
+        if (isNaN(amount) || amount < 0) amount = 0;
+        if (!selectedSong) return alert("곡을 선택해주세요!");
+        if (amount > currentUser.points) return alert("포인트가 부족합니다!");
 
-        const batch = db.batch();
-        const totalVotes = amount + 1;
+        // 0포인트일 때는 confirm 없이 바로 진행
+        if (amount > 0) {
+            const confirmed = confirm(`"${selectedSong}"에 ${amount}pt를 투자하시겠습니까?`);
+            if (!confirmed) return;
+        }
 
-        batch.update(db.collection("classes").doc(myClass).collection("students").doc(currentUser.name), { 
-            hasVoted: true, points: currentUser.points - amount, usedPoints: amount, lastChoice: selectedSong 
-        });
+        isVoting = true;
+        const btn = document.getElementById('btn-submit');
+        btn.disabled = true;
+        btn.innerText = "처리 중...";
 
-        batch.set(db.collection("classes").doc(myClass).collection("votes").doc(selectedSong), { 
-            totalScore: firebase.firestore.FieldValue.increment(totalVotes) 
-        }, { merge: true });
+        try {
+            const batch = db.batch();
+            const totalVotes = amount + 1;
 
-        await batch.commit();
-        document.getElementById('vote-amount').value = "";
+            batch.update(
+                db.collection("classes").doc(myClass).collection("students").doc(currentUser.name),
+                { hasVoted: true, points: currentUser.points - amount, usedPoints: amount, lastChoice: selectedSong }
+            );
+            batch.set(
+                db.collection("classes").doc(myClass).collection("votes").doc(selectedSong),
+                { totalScore: firebase.firestore.FieldValue.increment(totalVotes) },
+                { merge: true }
+            );
+            await batch.commit();
+            document.getElementById('vote-amount').value = "";
+            document.getElementById('vote-slider').value = 0;
+            // 화면 전환은 watchUser의 onSnapshot → updateScreen()이 처리
+        } catch (e) {
+            alert("오류가 발생했습니다. 다시 시도해주세요.");
+            btn.disabled = false;
+            btn.innerText = "투표 완료";
+            isVoting = false;
+        }
     }
 
+    // ────────────────────────────────────────
+    // 다시 투표하기 (포인트 환불 + hasVoted 초기화)
+    // ────────────────────────────────────────
+    async function cancelVote() {
+        const confirmed = confirm("이전 투표를 취소하고 다시 투표하시겠습니까?\n투자했던 포인트는 돌아옵니다.");
+        if (!confirmed) return;
+
+        try {
+            const studentRef = db.collection("classes").doc(myClass).collection("students").doc(currentUser.name);
+            const refundPoints = currentUser.usedPoints || 0;
+            const refundScore  = refundPoints + 1;
+
+            const batch = db.batch();
+            batch.update(studentRef, {
+                hasVoted: false,
+                points: firebase.firestore.FieldValue.increment(refundPoints),
+                usedPoints: 0,
+                lastChoice: ""
+            });
+
+            // lastChoice가 유효할 때만 투표 점수 차감
+            if (currentUser.lastChoice) {
+                const voteRef = db.collection("classes").doc(myClass).collection("votes").doc(currentUser.lastChoice);
+                batch.set(voteRef,
+                    { totalScore: firebase.firestore.FieldValue.increment(-refundScore) },
+                    { merge: true }
+                );
+            }
+
+            await batch.commit();
+
+            selectedSong = null;
+            isVoting = false;
+            document.getElementById('btn-submit').innerText = "투표 완료";
+            document.getElementById('btn-submit').disabled = true;
+            document.getElementById('vote-amount').value = "";
+            document.getElementById('vote-slider').value = 0;
+            // active 클래스 전부 제거
+            document.querySelectorAll('.option-item').forEach(el => el.classList.remove('active'));
+            // 화면 전환은 watchUser의 onSnapshot → updateScreen()이 처리
+        } catch (e) {
+            alert("오류가 발생했습니다. 다시 시도해주세요.");
+        }
+    }
+
+    // ────────────────────────────────────────
+    // 결과 표시
+    // ────────────────────────────────────────
     async function showResults() {
-        const snap = await db.collection("classes").doc(myClass).collection("votes").get();
-        let html = "";
-        snap.forEach(doc => {
-            const score = doc.data().totalScore || 0;
-            if(score > 0) html += `<div style="padding:12px; border-bottom:1px solid #eee; text-align:left; display:flex; justify-content:space-between;">
-                                    <b>${doc.id}</b> <span>${score}pt</span></div>`;
+        // votes 컬렉션 (totalScore) + students 컬렉션 (lastChoice로 인원 수 집계) 동시 조회
+        const [votesSnap, studentsSnap] = await Promise.all([
+            db.collection("classes").doc(myClass).collection("votes").get(),
+            db.collection("classes").doc(myClass).collection("students").get()
+        ]);
+
+        // 곡별 투표 인원 수 집계
+        const countMap = {};
+        studentsSnap.forEach(doc => {
+            const choice = doc.data().lastChoice;
+            if (choice) countMap[choice] = (countMap[choice] || 0) + 1;
         });
-        document.getElementById('result-list').innerHTML = html || "득표 내역 없음";
+
+        // 데이터 정리 + 점수 높은 순 정렬
+        const results = [];
+        votesSnap.forEach(doc => {
+            const score = doc.data().totalScore || 0;
+            if (score > 0) results.push({ name: doc.id, score, count: countMap[doc.id] || 0 });
+        });
+        results.sort((a, b) => b.score - a.score);
+
+        if (results.length === 0) {
+            document.getElementById('result-list').innerHTML = '<p style="text-align:center; color:#888; padding:20px;">득표 내역 없음</p>';
+        } else {
+            const maxScore = results[0].score;
+            const maxCount = Math.max(...results.map(r => r.count), 1);
+            const ranks = ["🥇", "🥈", "🥉"];
+
+            document.getElementById('result-list').innerHTML = results.map((r, i) => `
+                <div class="result-card">
+                    <div class="result-title-row">
+                        <span class="result-rank">${ranks[i] || `${i+1}.`}</span>
+                        <span class="result-song-name">${r.name}</span>
+                    </div>
+                    <div class="result-stats">
+                        <span class="result-stat">💰 ${r.score}pt</span>
+                        <span class="result-stat">👤 ${r.count}명</span>
+                    </div>
+                    <div class="bar-label">포인트</div>
+                    <div class="bar-wrap"><div class="bar-pt" style="width:${Math.round(r.score/maxScore*100)}%"></div></div>
+                    <div class="bar-label" style="margin-top:4px;">투표 인원</div>
+                    <div class="bar-wrap"><div class="bar-cnt" style="width:${Math.round(r.count/maxCount*100)}%"></div></div>
+                </div>
+            `).join("");
+        }
+
         document.getElementById('step-vote').classList.add('hidden');
         document.getElementById('step-waiting').classList.add('hidden');
         document.getElementById('step-result').classList.remove('hidden');
