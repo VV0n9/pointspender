@@ -129,6 +129,18 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // ────────────────────────────────────────
+    // 기기 고유 ID (localStorage에 영구 저장)
+    // ────────────────────────────────────────
+    function getDeviceId() {
+        let id = localStorage.getItem('deviceId');
+        if (!id) {
+            id = crypto.randomUUID();
+            localStorage.setItem('deviceId', id);
+        }
+        return id;
+    }
+
     let myClass        = null;
     let currentUser    = null;
     let selectedSong   = null;
@@ -277,8 +289,32 @@
         loginBtn.disabled = true;
         loginBtn.innerText = "확인 중...";
         try {
-            const doc = await db.collection("classes").doc(myClass).collection("students").doc(name).get();
+            const deviceId = getDeviceId();
+            const studentsRef = db.collection("classes").doc(myClass).collection("students");
+
+            // 같은 deviceId로 이미 다른 학생이 로그인했는지 확인
+            const dupSnap = await studentsRef.where("deviceId", "==", deviceId).get();
+            if (!dupSnap.empty && dupSnap.docs[0].id !== name) {
+                const otherName = dupSnap.docs[0].id;
+                // 부정접속 시도 로그 기록
+                await db.collection("classes").doc(myClass)
+                    .collection("access_log").add({
+                        attemptedName: name,
+                        blockedBy: otherName,
+                        deviceId: deviceId,
+                        timestamp: new Date().toISOString()
+                    });
+                alert(`이 기기는 이미 "${otherName}"으로 접속되어 있습니다.\n다른 이름으로 접속할 수 없어요.`);
+                document.getElementById('input-name').value = "";
+                loginBtn.disabled = false;
+                loginBtn.innerText = "시작하기";
+                return;
+            }
+
+            const doc = await studentsRef.doc(name).get();
             if (doc.exists) {
+                // deviceId 기록
+                await studentsRef.doc(name).update({ deviceId });
                 document.getElementById('step-login').classList.add('hidden');
                 document.getElementById('user-display').innerText = name;
                 watchUser(name);
@@ -394,6 +430,10 @@
         const confirmed = confirm("이전 투표를 취소하고 다시 투표하시겠습니까?\n투자했던 포인트는 돌아옵니다.");
         if (!confirmed) return;
 
+        const revoteBtn = document.querySelector('.revote-btn');
+        revoteBtn.disabled = true;
+        revoteBtn.innerText = "처리 중...";
+
         try {
             const studentRef = db.collection("classes").doc(myClass).collection("students").doc(currentUser.name);
             const refundPoints = currentUser.usedPoints || 0;
@@ -429,6 +469,8 @@
             // 화면 전환은 watchUser의 onSnapshot → updateScreen()이 처리
         } catch (e) {
             alert("오류가 발생했습니다. 다시 시도해주세요.");
+            revoteBtn.disabled = false;
+            revoteBtn.innerText = "🔄 다시 투표하기";
         }
     }
 
