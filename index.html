@@ -245,7 +245,7 @@
         options.forEach(opt => {
             const div = document.createElement('div');
             div.className = 'option-item' + (selectedSong === opt ? ' active' : '');
-            // div 전체에 클릭 이벤트 부착 (텍스트 영역 밖 클릭도 처리)
+            div.dataset.song = opt;  // 텍스트 비교 대신 data 속성 사용
             div.onclick = (e) => {
                 if (!e.target.classList.contains('lyrics-btn')) selectSong(opt);
             };
@@ -264,9 +264,13 @@
 
     function selectSong(name) {
         selectedSong = name;
-        // DOM 재생성 없이 active 클래스만 교체 → 이벤트 소실 방지
+        // innerText 비교 대신 data-song 속성으로 비교 → 공백/줄바꿈 문제 원천 차단
         document.querySelectorAll('.option-item').forEach(el => {
-            el.classList.toggle('active', el.querySelector('.song-name').innerText === name);
+            if (el.dataset.song === name) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+            }
         });
         document.getElementById('btn-submit').disabled = false;
     }
@@ -460,6 +464,8 @@
 
             selectedSong = null;
             isVoting = false;
+            revoteBtn.disabled = false;
+            revoteBtn.innerText = "🔄 다시 투표하기";
             document.getElementById('btn-submit').innerText = "투표 완료";
             document.getElementById('btn-submit').disabled = true;
             document.getElementById('vote-amount').value = "";
