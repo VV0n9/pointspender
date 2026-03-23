@@ -206,6 +206,7 @@
         const loginBtn = document.querySelector('#step-login button');
         loginBtn.disabled = false;
         loginBtn.innerText = "시작하기";
+        document.getElementById('option-container').innerHTML = "";
         document.getElementById('vote-amount').value = "";
         document.getElementById('vote-slider').value = 0;
         document.getElementById('btn-submit').disabled = true;
@@ -245,10 +246,6 @@
         options.forEach(opt => {
             const div = document.createElement('div');
             div.className = 'option-item' + (selectedSong === opt ? ' active' : '');
-            div.dataset.song = opt;  // 텍스트 비교 대신 data 속성 사용
-            div.onclick = (e) => {
-                if (!e.target.classList.contains('lyrics-btn')) selectSong(opt);
-            };
             const nameDiv = document.createElement('div');
             nameDiv.className = 'song-name';
             nameDiv.innerText = opt;
@@ -256,23 +253,18 @@
             lyricsBtn.className = 'lyrics-btn';
             lyricsBtn.innerText = '📖';
             lyricsBtn.onclick = (e) => { e.stopPropagation(); openLyrics(opt); };
+            // div를 클로저로 직접 참조 → DOM 쿼리/문자열 비교 완전 제거
+            div.onclick = (e) => {
+                if (e.target.classList.contains('lyrics-btn')) return;
+                document.querySelectorAll('.option-item').forEach(el => el.classList.remove('active'));
+                div.classList.add('active');
+                selectedSong = opt;
+                document.getElementById('btn-submit').disabled = false;
+            };
             div.appendChild(nameDiv);
             div.appendChild(lyricsBtn);
             container.appendChild(div);
         });
-    }
-
-    function selectSong(name) {
-        selectedSong = name;
-        // innerText 비교 대신 data-song 속성으로 비교 → 공백/줄바꿈 문제 원천 차단
-        document.querySelectorAll('.option-item').forEach(el => {
-            if (el.dataset.song === name) {
-                el.classList.add('active');
-            } else {
-                el.classList.remove('active');
-            }
-        });
-        document.getElementById('btn-submit').disabled = false;
     }
 
     function openLyrics(name) {
@@ -415,6 +407,7 @@
                 { merge: true }
             );
             await batch.commit();
+            isVoting = false;  // 성공 시 명시적 리셋 — 강제 초기화 등 예외 경로에서도 투표 가능하게
             document.getElementById('vote-amount').value = "";
             document.getElementById('vote-slider').value = 0;
             // 화면 전환은 watchUser의 onSnapshot → updateScreen()이 처리
