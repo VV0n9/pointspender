@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포인트 베팅</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        :root{--bg:#f0f2f5;--card:#fff;--primary:#1a73e8;--gold:#f0b429;--green:#22c55e;--red:#ef4444;--gray:#8b949e;--border:#e2e8f0;--surface:#f8fafc}
+        body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);display:flex;justify-content:center;padding:16px;min-height:100vh}
+        .card{background:var(--card);padding:22px;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.1);width:100%;max-width:460px;text-align:center}
+        .hidden{display:none!important}
+        .hub-btn{width:100%;padding:18px;margin-bottom:8px;border-radius:12px;border:2px solid var(--primary);background:#fff;color:var(--primary);font-family:inherit;font-weight:700;font-size:1em;cursor:pointer}
+        .hub-btn:hover{background:#f0f6ff}
+        .back-link{display:block;margin-top:14px;color:var(--gray);text-decoration:underline;font-size:.88em;cursor:pointer;border:none;background:none;width:100%;padding:10px 0;font-family:inherit;min-height:44px}
+        .race-title{font-size:1.15em;font-weight:900;color:#1a1a2e;margin-bottom:6px}
+        .mode-badge{display:inline-block;font-size:.72em;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:14px}
+        .badge-fixed{background:#e8f0fe;color:var(--primary)}
+        .badge-pool{background:#fff3e0;color:#e65100}
+        .point-bar{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:.88em}
+        .point-bar .pts{font-weight:900;color:var(--primary)}
+        .point-bar .fee b{color:var(--red)}
+        .slot-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;text-align:left;transition:border-color .15s}
+        .slot-card.selected{border-color:var(--primary);background:#f0f6ff}
+        .slot-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+        .slot-name{font-size:.88em;font-weight:900;color:#1a1a2e}
+        .slot-odds{font-size:.75em;font-weight:700;color:var(--gold);background:#fff8e1;padding:2px 8px;border-radius:8px}
+        .slot-select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.88em;background:#fff;color:#1a1a2e}
+        .amt-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+        .amt-row input{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.85em}
+        .amt-row .max-btn{padding:8px 12px;border:1.5px solid var(--primary);border-radius:8px;background:#fff;color:var(--primary);font-size:.78em;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;min-height:44px}
+        .total-row{display:flex;justify-content:space-between;align-items:center;background:#fff8e1;border-radius:10px;padding:10px 14px;margin:12px 0;font-size:.88em}
+        .total-row .lbl{color:var(--gray);font-weight:700}
+        .total-row .amt{font-weight:900;color:#e65100;font-size:1.05em}
+        .submit-btn{width:100%;padding:16px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-family:inherit;font-size:1em;font-weight:900;cursor:pointer;transition:.15s}
+        .submit-btn:hover{background:#1557b0}
+        .submit-btn:disabled{background:#ccc;cursor:not-allowed}
+        .modify-btn{width:100%;padding:14px;border:none;border-radius:12px;background:#f59e0b;color:#fff;font-family:inherit;font-size:1em;font-weight:900;cursor:pointer;margin-top:8px}
+        .bet-row{display:flex;align-items:center;padding:10px 12px;background:var(--surface);border-radius:8px;margin-bottom:6px;font-size:.88em}
+        .bet-row .s{font-weight:700;color:var(--gray);min-width:70px}
+        .bet-row .c{font-weight:900;color:#1a1a2e;flex:1;padding:0 8px}
+        .bet-row .a{font-weight:700;color:var(--primary)}
+        .result-slot{display:flex;align-items:center;padding:12px 14px;border-radius:10px;margin-bottom:8px;font-size:.88em;text-align:left}
+        .result-slot.win{background:#f0fdf4;border:1.5px solid var(--green)}
+        .result-slot.lose{background:#fef2f2;border:1.5px solid #fca5a5}
+        .result-slot .rn{font-weight:900;min-width:75px}
+        .result-slot .rc{flex:1;color:#444}
+        .result-slot .rr{font-weight:900}
+        .result-slot.win .rr{color:var(--green)}
+        .result-slot.lose .rr{color:var(--red)}
+        .payout-box{background:linear-gradient(135deg,#1a1a2e,#2d2d5e);color:#fff;border-radius:14px;padding:18px;margin:14px 0;text-align:center}
+        .payout-box .pl{font-size:.8em;color:#aaa}
+        .payout-box .pa{font-size:1.8em;font-weight:900;color:var(--gold);margin-top:4px}
+        .no-race{padding:40px 0;color:var(--gray)}
+        .no-race .icon{font-size:3em}
+        .no-race p{margin-top:12px;font-size:.9em}
+        .waiting-box{padding:30px 0}
+        .waiting-box .icon{font-size:3.5em}
+        .waiting-box h3{margin-top:14px;font-size:1em;color:#444}
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="race-title" id="race-title">포인트 베팅</div>
+    <div id="race-mode-badge"></div>
+
+    <div id="step-hub">
+        <button class="hub-btn" onclick="initClass(1)">6학년 8반</button>
+        <button class="hub-btn" onclick="initClass(2)">6학년 9반</button>
+        <button class="hub-btn" onclick="initClass(3)">6학년 10반</button>
+        <button class="hub-btn" onclick="initClass(4)">6학년 11반</button>
+        <button class="hub-btn" onclick="initClass(5)">6학년 12반</button>
+        <button class="hub-btn" onclick="initClass(6)">6학년 13반</button>
+        <button class="hub-btn" onclick="initClass(7)">6학년 14반</button>
+    </div>
+
+    <div id="step-login" class="hidden">
+        <input type="text" id="input-name" placeholder="이름을 입력하세요"
+            style="width:100%;padding:14px;margin-bottom:10px;border-radius:10px;border:1.5px solid var(--border);font-size:16px;font-family:inherit;">
+        <button onclick="login()" id="btn-login"
+            style="width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-weight:900;font-size:16px;font-family:inherit;cursor:pointer;">
+            시작하기
+        </button>
+        <button class="back-link" onclick="resetHub()">다른 반 선택하기</button>
+    </div>
+
+    <div id="step-no-race" class="hidden">
+        <div class="no-race">
+            <div class="icon">🏇</div>
+            <p>현재 진행 중인 베팅이 없어요</p>
+        </div>
+        <button class="back-link" onclick="resetHub()">처음으로</button>
+    </div>
+
+    <div id="step-betting" class="hidden">
+        <div class="point-bar">
+            <span>💰 <b class="pts" id="user-points">0</b>pt 보유</span>
+            <span class="fee">참가비 <b id="fee-display">0</b>pt</span>
+        </div>
+        <div id="slot-container"></div>
+        <div class="total-row" id="pool-total-row" style="display:none">
+            <span class="lbl">총 차감 예정</span>
+            <span class="amt" id="total-deduct">0pt</span>
+        </div>
+        <button class="submit-btn" id="btn-submit" onclick="submitBet()">베팅 제출</button>
+        <button class="back-link" onclick="resetHub()">처음으로</button>
+    </div>
+
+    <div id="step-submitted" class="hidden">
+        <div style="font-size:2.5em;margin-bottom:10px">✅</div>
+        <h3 style="font-size:1em;margin-bottom:4px">베팅 완료!</h3>
+        <p style="font-size:.82em;color:var(--gray);margin-bottom:14px">마감 전까지 수정할 수 있어요</p>
+        <div id="submitted-summary"></div>
+        <button class="modify-btn" onclick="modifyBet()">✏️ 베팅 수정하기</button>
+        <button class="back-link" onclick="resetHub()">처음으로</button>
+    </div>
+
+    <div id="step-closed" class="hidden">
+        <div class="waiting-box">
+            <div class="icon">⏳</div>
+            <h3>베팅 마감! 결과를 기다려요</h3>
+        </div>
+        <div id="closed-summary" style="margin-top:14px"></div>
+        <button class="back-link" onclick="resetHub()">처음으로</button>
+    </div>
+
+    <div id="step-result" class="hidden">
+        <div class="payout-box">
+            <div class="pl">획득 포인트</div>
+            <div class="pa" id="payout-amount">0pt</div>
+        </div>
+        <div id="result-slots"></div>
+        <button class="back-link" onclick="resetHub()">처음으로</button>
+    </div>
+</div>
+
+<script>
+const firebaseConfig={apiKey:"AIzaSyCG_SCd7ml_YYLxb4PoE8JlllE6hcLiwac",authDomain:"prototype-624fa.firebaseapp.com",projectId:"prototype-624fa",storageBucket:"prototype-624fa.firebasestorage.app",messagingSenderId:"264861322236",appId:"1:264861322236:web:edcd30e612e36773930079"};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
+
+const SLOTS=['단승','연승','4연승','8연승','16연승'];
+const LIMITS={'단승':1,'연승':2,'4연승':4,'8연승':8,'16연승':16};
+
+let myClass=null,currentUser=null,currentRace=null,currentRaceId=null;
+let existingBet=null,isModifying=false;
+let raceUnsub=null,userUnsub=null;
+
+function getDeviceId(){let id=localStorage.getItem('deviceId');if(!id){id=crypto.randomUUID();localStorage.setItem('deviceId',id);}return id;}
+
+function initClass(num){myClass="class"+num;showOnly('step-login');subscribeRace();}
+
+function resetHub(){
+    if(raceUnsub){raceUnsub();raceUnsub=null;}
+    if(userUnsub){userUnsub();userUnsub=null;}
+    myClass=null;currentUser=null;currentRace=null;currentRaceId=null;existingBet=null;isModifying=false;
+    document.getElementById('race-title').innerText='포인트 베팅';
+    document.getElementById('race-mode-badge').innerHTML='';
+    document.getElementById('input-name').value='';
+    const b=document.getElementById('btn-login');b.disabled=false;b.innerText='시작하기';
+    showOnly('step-hub');
+}
+
+// ── 레이스 구독 (복합인덱스 불필요: orderBy 단일 필드만 사용) ──
+function subscribeRace(){
+    if(raceUnsub){raceUnsub();}
+    raceUnsub=db.collection('betting_races')
+        .orderBy('createdAt','desc').limit(1)
+        .onSnapshot(snap=>{
+            if(snap.empty){currentRace=null;currentRaceId=null;if(currentUser)showOnly('step-no-race');return;}
+            const doc=snap.docs[0];
+            const data=doc.data();
+            // 상태 클라이언트 필터
+            if(!['open','closed','revealed'].includes(data.status)){
+                currentRace=null;currentRaceId=null;if(currentUser)showOnly('step-no-race');return;
+            }
+            currentRaceId=doc.id;currentRace=data;
+            updateHeader();
+            if(currentUser)renderByState();
+        });
+}
+
+function updateHeader(){
+    if(!currentRace)return;
+    document.getElementById('race-title').innerText=currentRace.title||'포인트 베팅';
+    const badge=document.getElementById('race-mode-badge');
+    badge.innerHTML=currentRace.mode==='pool'
+        ?'<span class="mode-badge badge-pool">🎯 풀 베팅</span>'
+        :'<span class="mode-badge badge-fixed">📌 고정 배당</span>';
+}
+
+async function login(){
+    const name=document.getElementById('input-name').value.trim();if(!name)return;
+    const btn=document.getElementById('btn-login');btn.disabled=true;btn.innerText='확인 중...';
+    try{
+        const deviceId=getDeviceId();
+        const sRef=db.collection("classes").doc(myClass).collection("students");
+        const dup=await sRef.where("deviceId","==",deviceId).get();
+        if(!dup.empty&&dup.docs[0].id!==name){
+            const other=dup.docs[0].id;
+            await db.collection("classes").doc(myClass).collection("access_log").add({attemptedName:name,blockedBy:other,deviceId,timestamp:new Date().toISOString()});
+            alert(`이 기기는 이미 "${other}"으로 접속되어 있습니다.`);
+            document.getElementById('input-name').value='';btn.disabled=false;btn.innerText='시작하기';return;
+        }
+        const doc=await sRef.doc(name).get();
+        if(!doc.exists){alert("명단에 이름이 없습니다.");document.getElementById('input-name').value='';btn.disabled=false;btn.innerText='시작하기';return;}
+        await sRef.doc(name).update({deviceId});
+        showOnly('step-no-race');
+        watchUser(name);
+    }catch(e){alert("오류가 발생했습니다.");btn.disabled=false;btn.innerText='시작하기';}
+}
+
+function watchUser(name){
+    if(userUnsub){userUnsub();}
+    userUnsub=db.collection("classes").doc(myClass).collection("students").doc(name).onSnapshot(doc=>{
+        if(!doc.exists)return;
+        currentUser={name,...doc.data()};
+        document.getElementById('user-points').innerText=currentUser.points;
+        if(currentRace)renderByState();else showOnly('step-no-race');
+    });
+}
+
+async function renderByState(){
+    if(!currentRace||!currentUser)return;
+    const betId=`${myClass}_${currentUser.name}`;
+    const betDoc=await db.collection('betting_races').doc(currentRaceId).collection('bets').doc(betId).get();
+    existingBet=betDoc.exists?betDoc.data():null;
+    if(currentRace.status==='open'){
+        if(existingBet&&!isModifying){renderSummary('submitted-summary');showOnly('step-submitted');}
+        else{renderBettingPanel();showOnly('step-betting');}
+    }else if(currentRace.status==='closed'){
+        renderSummary('closed-summary');showOnly('step-closed');
+    }else if(currentRace.status==='revealed'){
+        renderResultView();showOnly('step-result');
+    }
+}
+
+function renderBettingPanel(){
+    const race=currentRace,isPool=race.mode==='pool';
+    document.getElementById('fee-display').innerText=race.entryFee||0;
+    document.getElementById('pool-total-row').style.display=isPool?'flex':'none';
+    const container=document.getElementById('slot-container');container.innerHTML='';
+    SLOTS.forEach(slot=>{
+        const prev=existingBet?.[slot]||{};
+        const odds=race.odds?.[slot];
+        const oddsLabel=isPool?'풀 배당':`당첨 시 +${odds??'?'}pt`;
+        const div=document.createElement('div');
+        div.className='slot-card'+(prev.candidate?' selected':'');div.id='slot-'+slot;
+        let html=`<div class="slot-header"><span class="slot-name">${slot}식</span><span class="slot-odds">${oddsLabel}</span></div>
+            <select class="slot-select" id="sel-${slot}" onchange="onSlotChange('${slot}')">
+            <option value="">— 후보 선택 —</option>`;
+        (race.candidates||[]).forEach(c=>{html+=`<option value="${c}"${c===prev.candidate?' selected':''} >${c}</option>`;});
+        html+='</select>';
+        if(isPool){html+=`<div class="amt-row"><input type="number" id="amt-${slot}" min="0" inputmode="numeric" pattern="[0-9]*" placeholder="추가 포인트" value="${prev.amount||0}" oninput="updateTotal()"><button class="max-btn" onclick="setMax('${slot}')">최대</button></div>`;}
+        div.innerHTML=html;container.appendChild(div);
+    });
+    updateTotal();
+}
+
+function onSlotChange(slot){document.getElementById('slot-'+slot).classList.toggle('selected',!!document.getElementById('sel-'+slot).value);updateTotal();}
+
+function updateTotal(){
+    if(!currentRace||currentRace.mode!=='pool')return;
+    const fee=currentRace.entryFee||0;let extra=0;
+    SLOTS.forEach(s=>{const el=document.getElementById('amt-'+s);if(el)extra+=parseInt(el.value)||0;});
+    document.getElementById('total-deduct').innerText=`${fee+extra}pt`;
+}
+
+function setMax(slot){
+    if(!currentUser)return;
+    const fee=currentRace.entryFee||0;let other=0;
+    SLOTS.forEach(s=>{if(s===slot)return;const el=document.getElementById('amt-'+s);if(el)other+=parseInt(el.value)||0;});
+    const el=document.getElementById('amt-'+slot);
+    if(el){el.value=Math.max(0,currentUser.points-fee-other);updateTotal();}
+}
+
+async function submitBet(){
+    const race=currentRace,isPool=race.mode==='pool',fee=race.entryFee||0;
+    const picks={};let extraTotal=0;
+    SLOTS.forEach(slot=>{
+        const candidate=document.getElementById('sel-'+slot)?.value||'';
+        const amount=isPool?(parseInt(document.getElementById('amt-'+slot)?.value)||0):0;
+        picks[slot]={candidate,amount};extraTotal+=amount;
+    });
+    if(!SLOTS.some(s=>picks[s].candidate))return alert('최소 하나의 슬롯에서 후보를 선택해주세요.');
+    const isFirst=!existingBet;
+    if(isFirst&&currentUser.points<fee)return alert('포인트가 부족합니다!');
+    if(isPool){
+        const oldExtra=existingBet?SLOTS.reduce((s,sl)=>s+(existingBet[sl]?.amount||0),0):0;
+        const net=(isFirst?fee:0)+extraTotal-oldExtra;
+        if(currentUser.points<net)return alert('포인트가 부족합니다!');
+    }
+    if(!confirm(`베팅을 ${isModifying?'수정':'제출'}하시겠습니까?${isFirst?`\n참가비 ${fee}pt가 차감돼요.`:''}`))return;
+    const btn=document.getElementById('btn-submit');btn.disabled=true;btn.innerText='처리 중...';
+    try{
+        const betId=`${myClass}_${currentUser.name}`;
+        const betRef=db.collection('betting_races').doc(currentRaceId).collection('bets').doc(betId);
+        const stuRef=db.collection('classes').doc(myClass).collection('students').doc(currentUser.name);
+        const raceRef=db.collection('betting_races').doc(currentRaceId);
+        const batch=db.batch();
+        if(isPool){
+            const oldExtra=existingBet?SLOTS.reduce((s,sl)=>s+(existingBet[sl]?.amount||0),0):0;
+            const net=(isFirst?fee:0)+extraTotal-oldExtra;
+            if(net!==0)batch.update(stuRef,{points:firebase.firestore.FieldValue.increment(-net)});
+        }else if(isFirst){
+            batch.update(stuRef,{points:firebase.firestore.FieldValue.increment(-fee)});
+        }
+        batch.set(betRef,{className:myClass,studentName:currentUser.name,...picks,entryFeePaid:isFirst?fee:(existingBet?.entryFeePaid||fee),settled:false,payout:0,submittedAt:new Date().toISOString()});
+        if(isPool){
+            const poolUp={};
+            if(existingBet){SLOTS.forEach(sl=>{const o=existingBet[sl];if(o?.candidate&&o?.amount>0)poolUp[`pool.${sl}.${o.candidate}`]=firebase.firestore.FieldValue.increment(-o.amount);});}
+            SLOTS.forEach(sl=>{if(picks[sl].candidate&&picks[sl].amount>0)poolUp[`pool.${sl}.${picks[sl].candidate}`]=firebase.firestore.FieldValue.increment(picks[sl].amount);});
+            if(Object.keys(poolUp).length)batch.update(raceRef,poolUp);
+        }
+        await batch.commit();
+        isModifying=false;await renderByState();
+    }catch(e){alert('오류가 발생했습니다. 다시 시도해주세요.');}
+    finally{btn.disabled=false;btn.innerText='베팅 제출';}
+}
+
+function modifyBet(){isModifying=true;renderBettingPanel();showOnly('step-betting');}
+
+function renderSummary(targetId){
+    const bet=existingBet;let html='';
+    if(bet)SLOTS.forEach(slot=>{const p=bet[slot];if(!p?.candidate)return;const a=currentRace?.mode==='pool'&&p.amount>0?`+${p.amount}pt`:'';html+=`<div class="bet-row"><span class="s">${slot}식</span><span class="c">${p.candidate}</span><span class="a">${a}</span></div>`;});
+    document.getElementById(targetId).innerHTML=html||'<p style="color:var(--gray);font-size:.85em;text-align:center;padding:10px">선택 없음</p>';
+}
+
+function renderResultView(){
+    const race=currentRace,bet=existingBet,result=race.result||[];
+    let total=0,html='';
+    SLOTS.forEach(slot=>{
+        const p=bet?.[slot];if(!p?.candidate)return;
+        const topN=result.slice(0,LIMITS[slot]);const won=topN.includes(p.candidate);
+        let label='';
+        if(won&&race.mode==='fixed'){total+=race.odds?.[slot]||0;label=`+${race.odds?.[slot]||0}pt`;}
+        else if(won)label='당첨!';
+        html+=`<div class="result-slot ${won?'win':'lose'}"><span class="rn">${slot}식</span><span class="rc">${p.candidate}</span><span class="rr">${won?'🏆 '+label:'❌ 낙첨'}</span></div>`;
+    });
+    const disp=bet?.settled?bet.payout:(race.mode==='fixed'?total:0);
+    document.getElementById('payout-amount').innerText=`+${disp}pt`;
+    document.getElementById('result-slots').innerHTML=html||'<p style="color:var(--gray);text-align:center;padding:20px">베팅 내역 없음</p>';
+}
+
+function showOnly(id){['step-hub','step-login','step-no-race','step-betting','step-submitted','step-closed','step-result'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));}
+</script>
+</body>
+</html>
