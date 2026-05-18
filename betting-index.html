@@ -142,8 +142,8 @@ const firebaseConfig={apiKey:"AIzaSyCG_SCd7ml_YYLxb4PoE8JlllE6hcLiwac",authDomai
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 
-const SLOTS=['단승','연승','4연승','8연승','16연승'];
-const LIMITS={'단승':1,'연승':2,'4연승':4,'8연승':8,'16연승':16};
+const SLOTS=['단승','연승','3연승','5연승','10연승'];
+const LIMITS={'단승':1,'연승':2,'3연승':3,'5연승':5,'10연승':10};
 
 let myClass=null,currentUser=null,currentRace=null,currentRaceId=null;
 let existingBet=null,isModifying=false;
